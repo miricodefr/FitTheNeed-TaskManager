@@ -1,150 +1,170 @@
-// Get username from URL parameter or sessionStorage
-function loadUserInfo() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const username =
-    urlParams.get("username") || sessionStorage.getItem("username") || "User";
+/**
+ * tasks.js
+ * For now:
+ * - Adds tasks to an in-memory array
+ * - Displays them in a table
+ * - Adds safe limits (max characters + date range)
+ */
 
-  if (username && username !== "User") {
-    sessionStorage.setItem("username", username);
-  }
+const form = document.getElementById("taskForm");
+const tableBody = document.getElementById("taskTableBody");
+const dateInput = document.getElementById("taskDate");
 
-  document.getElementById("username").textContent = username;
+// In-memory list (refreshing page will reset it for now)
+let tasks = [];
+
+/**
+ * Converts a Date object to YYYY-MM-DD (the format required by <input type="date">)
+ * @param {Date} date
+ * @returns {string} formatted date
+ */
+function formatDate(date) {
+  return date.toISOString().split("T")[0];
 }
 
-// Load user's projects from localStorage
-function loadProjects() {
-  const projects = JSON.parse(localStorage.getItem("userProjects") || "[]");
-  const container = document.getElementById("projectsContainer");
+/**
+ * Sets the date input limits:
+ * - Minimum = today
+ * - Maximum = today + 2 years
+ */
+function setDateLimits() {
+  const today = new Date();
 
-  if (projects.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <p>You haven't created any websites yet.</p>
-        <p>Start by describing your first website above!</p>
-      </div>
-    `;
+  // Copy today's date and add 2 years
+  const maxDate = new Date();
+  maxDate.setFullYear(today.getFullYear() + 2);
+
+  dateInput.min = formatDate(today);
+  dateInput.max = formatDate(maxDate);
+}
+
+setDateLimits();
+
+/**
+ * Renders the tasks array into the table.
+ * We use textContent (not innerHTML with user input)
+ * to avoid any HTML injection problems.
+ */
+function renderTasks() {
+  // Clear the table
+  tableBody.innerHTML = "";
+
+  // If there are no tasks, show a message
+  if (tasks.length === 0) {
+    const emptyRow = document.createElement("tr");
+    const emptyCell = document.createElement("td");
+    emptyCell.colSpan = 4;
+    emptyCell.className = "text-muted text-center py-4";
+    emptyCell.textContent = "No tasks yet. Add your first task above!";
+    emptyRow.appendChild(emptyCell);
+    tableBody.appendChild(emptyRow);
     return;
   }
 
-  container.innerHTML =
-    '<div class="projects-grid">' +
-    projects
-      .map(
-        (project, index) => `
-        <div class="project-card">
-          <h3>${project.name}</h3>
-          <p>${project.description.substring(0, 100)}${
-          project.description.length > 100 ? "..." : ""
-        }</p>
-          <p style="font-size: 12px; color: #999;">
-            Created: ${new Date(project.created).toLocaleDateString()}
-          </p>
-          <div class="actions">
-            <button onclick="editProject(${index})">Edit</button>
-            <button onclick="viewProject(${index})">View</button>
-            <button onclick="deleteProject(${index})">Delete</button>
-          </div>
-        </div>
-      `
-      )
-      .join("") +
-    "</div>";
+  tasks.forEach((task) => {
+    const row = document.createElement("tr");
+
+    const nameTd = document.createElement("td");
+    nameTd.textContent = task.name;
+
+    const descTd = document.createElement("td");
+    descTd.textContent = task.desc;
+
+    const dateTd = document.createElement("td");
+    dateTd.textContent = task.date;
+
+    const statusTd = document.createElement("td");
+    statusTd.textContent = task.status;
+
+    row.appendChild(nameTd);
+    row.appendChild(descTd);
+    row.appendChild(dateTd);
+    row.appendChild(statusTd);
+
+    tableBody.appendChild(row);
+  });
 }
 
-// Create a new website
-async function createWebsite(event) {
-  event.preventDefault();
+// Show empty message on first load
+renderTasks();
 
-  const description = document.getElementById("websiteDescription").value;
-  const loading = document.getElementById("loading");
-  const form = document.getElementById("createForm");
+/**
+ * Validates input lengths safely (even if user bypasses HTML maxlength)
+ * @param {string} name
+ * @param {string} desc
+ * @returns {string|null} error message or null if valid
+ */
+function validateTextLimits(name, desc) {
+  if (name.length > 50) return "Task name cannot exceed 50 characters.";
+  if (desc.length > 150) return "Description cannot exceed 150 characters.";
+  return null;
+}
 
-  // Show loading
-  loading.classList.add("active");
-  form.style.opacity = "0.5";
-  form.style.pointerEvents = "none";
+/**
+ * Checks if the selected date is within allowed range.
+ * @param {string} dateValue - YYYY-MM-DD
+ * @returns {boolean}
+ */
+function isDateWithinLimits(dateValue) {
+  const min = new Date(dateInput.min);
+  const max = new Date(dateInput.max);
+  const chosen = new Date(dateValue);
 
-  try {
-    // Simulating AI generation
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+  // If date is invalid, fail
+  if (Number.isNaN(chosen.getTime())) return false;
 
-    // Save project to localStorage
-    const projects = JSON.parse(localStorage.getItem("userProjects") || "[]");
-    const newProject = {
-      id: Date.now(),
-      name: `Website ${projects.length + 1}`,
-      description: description,
-      created: new Date().toISOString(),
-      status: "generated",
-    };
+  return chosen >= min && chosen <= max;
+}
 
-    projects.push(newProject);
-    localStorage.setItem("userProjects", JSON.stringify(projects));
+/**
+ * Form submit handler
+ */
+form.addEventListener("submit", (e) => {
+  e.preventDefault();
 
-    // Clear form and reload projects
-    document.getElementById("websiteDescription").value = "";
-    loadProjects();
+  // Read inputs and trim spaces
+  const name = document.getElementById("taskName").value.trim();
+  const desc = document.getElementById("taskDesc").value.trim();
+  const date = document.getElementById("taskDate").value;
 
-    alert('Website generated successfully! Check "Your Websites" section below.');
-  } catch (error) {
-    alert("Error generating website. Please try again.");
-    console.error(error);
-  } finally {
-    loading.classList.remove("active");
-    form.style.opacity = "1";
-    form.style.pointerEvents = "auto";
+  // Basic required checks
+  if (!name) {
+    alert("Task name is required.");
+    return;
   }
-}
 
-// Edit a project
-function editProject(index) {
-  const projects = JSON.parse(localStorage.getItem("userProjects") || "[]");
-  const project = projects[index];
+  if (!date) {
+    alert("Due date is required.");
+    return;
+  }
 
-  alert(
-    `Editing: ${project.name}\n\nThis will open the website editor where you can modify your site.`
-  );
-  // Later: window.location.href = `editor.html?project=${index}`;
-}
+  // Length checks (bulletproof even if user bypasses maxlength)
+  const error = validateTextLimits(name, desc);
+  if (error) {
+    alert(error);
+    return;
+  }
 
-// View a project
-function viewProject(index) {
-  const projects = JSON.parse(localStorage.getItem("userProjects") || "[]");
-  const project = projects[index];
+  // Date range checks (today → 2 years max)
+  if (!isDateWithinLimits(date)) {
+    alert("Please select a due date between today and 2 years from today.");
+    return;
+  }
 
-  alert(
-    `Viewing: ${project.name}\n\nThis will open a preview of your generated website.`
-  );
-  // Later: window.open(`preview.html?project=${index}`, "_blank");
-}
+  // Create a task object
+  const newTask = {
+    name,
+    desc,
+    date,
+    status: "Pending",
+  };
 
-// Delete a project
-function deleteProject(index) {
-  if (!confirm("Are you sure you want to delete this website?")) return;
+  // Add task to the array
+  tasks.push(newTask);
 
-  const projects = JSON.parse(localStorage.getItem("userProjects") || "[]");
-  projects.splice(index, 1);
-  localStorage.setItem("userProjects", JSON.stringify(projects));
-  loadProjects();
-}
+  // Re-render table
+  renderTasks();
 
-// Logout
-function logout() {
-  sessionStorage.clear();
-  window.location.href = "index.html";
-}
-
-// Snake button (placeholder)
-function snake() {
-  alert("🐍 Snake coming soon!");
-  // Later: window.location.href = "snake.html";
-}
-
-// Initialize on page load
-window.addEventListener("DOMContentLoaded", () => {
-  loadUserInfo();
-  loadProjects();
-
-  // Attach submit handler in JS (instead of inline onsubmit)
-  document.getElementById("createForm").addEventListener("submit", createWebsite);
+  // Reset form
+  form.reset();
 });
