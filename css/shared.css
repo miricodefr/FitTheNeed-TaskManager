@@ -3,5 +3,5 @@ body {
 }
 
 section {
-    min-height: 60vh;
+    min-height: auto;
 }

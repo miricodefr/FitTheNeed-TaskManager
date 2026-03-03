@@ -1,0 +1,22 @@
+/* analytics.css
+   Only styles for the Analytics page.
+*/
+
+h1 {
+  font-weight: 600;
+}
+
+.card {
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.insight-card h2 {
+  font-weight: 700;
+}
+
+canvas {
+  max-width: 100%;
+}
+
+canvas.d-none { display: none !important; }
