@@ -1,12 +1,61 @@
 /**
- * index.js (HOME PAGE ONLY)
- *
- * This file handles the Home page "Bored?" button.
- * When clicked, it fetches a random corporate phrase from a public API.
- *
- * API endpoint (returns JSON like: { "phrase": "..." } ):
- * https://corporatebs-generator.sameerkumar.website/
+ * index.js (Home)
+ * - Displays latest tasks from Tasks page (localStorage)
+ * - Fetches corporate phrase from API
  */
+
+const STORAGE_KEY = "ftn_tasks_v1";
+
+// LATEST ACTIVITY 
+
+const activityList = document.getElementById("activityList");
+
+//Safely load tasks from localStorage
+function loadTasks() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+//Create display text for each task
+function buildTaskText(task) {
+  const priority = task.priority ? ` | ${task.priority}` : "";
+  const status = task.status || "Pending";
+  return `${task.name}${priority} | ${status} | Due: ${task.date}`;
+}
+
+// Render latest 5 tasks
+function renderLatestActivity() {
+  const tasks = loadTasks();
+
+  activityList.innerHTML = "";
+
+  if (tasks.length === 0) {
+    const li = document.createElement("li");
+    li.className = "list-group-item text-muted";
+    li.textContent = "No tasks yet. Add tasks on the Tasks page.";
+    activityList.appendChild(li);
+    return;
+  }
+
+  // Get last 5 tasks added (newest first)
+  const latest = tasks.slice(-5).reverse();
+
+  latest.forEach(task => {
+    const li = document.createElement("li");
+    li.className = "list-group-item";
+    li.textContent = buildTaskText(task);
+    activityList.appendChild(li);
+  });
+}
+
+// Run when page loads
+renderLatestActivity();
+
 
 const boredBtn = document.getElementById("boredBtn");
 const bsPhraseEl = document.getElementById("bsPhrase");
@@ -57,7 +106,7 @@ async function fetchCorporatePhrase() {
     // Show the phrase safely (textContent avoids HTML injection)
     bsPhraseEl.textContent = phrase;
 
-    setStatus("Loaded ✅");
+    setStatus("Loaded ");
   } catch (err) {
     // Friendly fallback for users
     bsPhraseEl.textContent =
