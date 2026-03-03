@@ -4,24 +4,10 @@
  * - Fetches corporate phrase from API
  */
 
-const STORAGE_KEY = "ftn_tasks_v1";
-
-// LATEST ACTIVITY 
-
+// LATEST ACTIVITY
 const activityList = document.getElementById("activityList");
 
-//Safely load tasks from localStorage
-function loadTasks() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-//Create display text for each task
+// Create display text for each task
 function buildTaskText(task) {
   const priority = task.priority ? ` | ${task.priority}` : "";
   const status = task.status || "Pending";
@@ -30,7 +16,7 @@ function buildTaskText(task) {
 
 // Render latest 5 tasks
 function renderLatestActivity() {
-  const tasks = loadTasks();
+  const tasks = getTasks();
 
   activityList.innerHTML = "";
 
@@ -45,7 +31,7 @@ function renderLatestActivity() {
   // Get last 5 tasks added (newest first)
   const latest = tasks.slice(-5).reverse();
 
-  latest.forEach(task => {
+  latest.forEach((task) => {
     const li = document.createElement("li");
     li.className = "list-group-item";
     li.textContent = buildTaskText(task);
@@ -55,7 +41,6 @@ function renderLatestActivity() {
 
 // Run when page loads
 renderLatestActivity();
-
 
 const boredBtn = document.getElementById("boredBtn");
 const bsPhraseEl = document.getElementById("bsPhrase");
@@ -72,47 +57,30 @@ function setStatus(msg) {
   bsStatusEl.textContent = msg;
 }
 
-/**
- * Fetches a phrase from the API and shows it on the page.
- * This is written defensively:
- * - disables the button while loading (prevents spam clicks)
- * - handles network/API failures
- * - handles unexpected JSON
- */
 async function fetchCorporatePhrase() {
   try {
-    // Disable button to stop repeated clicks during loading
     boredBtn.disabled = true;
-
     setStatus("Loading a corporate phrase...");
 
-    // Call the API
     const response = await fetch(CORPORATE_BS_API_URL);
 
-    // If the server responds with an error status (404/500/etc)
     if (!response.ok) {
       throw new Error(`API error (status: ${response.status})`);
     }
 
     const data = await response.json();
 
-    // Validate the result shape
     const phrase = typeof data.phrase === "string" ? data.phrase : "";
-
     if (!phrase) {
       throw new Error("API returned an unexpected response (missing phrase).");
     }
 
-    // Show the phrase safely (textContent avoids HTML injection)
     bsPhraseEl.textContent = phrase;
-
     setStatus("Loaded ");
   } catch (err) {
-    // Friendly fallback for users
     bsPhraseEl.textContent =
       "Could not load a phrase right now. Please try again.";
 
-    // Useful info for debugging
     setStatus(`Error: ${err.message}`);
     console.error(err);
   } finally {
@@ -120,5 +88,4 @@ async function fetchCorporatePhrase() {
   }
 }
 
-// Connect button click to the API call
 boredBtn.addEventListener("click", fetchCorporatePhrase);

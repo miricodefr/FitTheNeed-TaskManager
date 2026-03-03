@@ -7,9 +7,6 @@
  * - Export CSV
  */
 
-const KEY = "ftn_tasks_v1";
-
-const $ = (id) => document.getElementById(id);
 const els = {
   total: $("insTotal"),
   pending: $("insPending"),
@@ -28,30 +25,21 @@ const els = {
 let statusChart = null;
 let priorityChart = null;
 
-const loadTasks = () => {
-  try {
-    const raw = localStorage.getItem(KEY);
-    const data = raw ? JSON.parse(raw) : [];
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
-};
-
-const dayStart = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
-const isOverdue = (t) => t.status === "Pending" && dayStart(new Date(t.date)) < dayStart(new Date());
-
 const applyFilters = (list) => {
   const prio = els.prio.value;
   const status = els.status.value;
-  return list.filter((t) =>
-    (prio === "all" || t.priority === prio) &&
-    (status === "all" || t.status === status)
+  return list.filter(
+    (t) =>
+      (prio === "all" || t.priority === prio) &&
+      (status === "all" || t.status === status)
   );
 };
 
 const countBy = (list, key, values) =>
-  values.reduce((acc, v) => ((acc[v] = list.filter((t) => t[key] === v).length), acc), {});
+  values.reduce(
+    (acc, v) => ((acc[v] = list.filter((t) => t[key] === v).length), acc),
+    {}
+  );
 
 const setNoData = (hasData) => {
   els.msg1.classList.toggle("d-none", hasData);
@@ -105,28 +93,24 @@ const updateInsights = (all) => {
 };
 
 const toCSV = (rows) => {
-  const esc = (v) => `"${String(v ?? "").replaceAll('"', '""').replaceAll(/\r?\n/g, " ")}"`;
-  const header = ["Name", "Description", "Due Date", "Priority", "Status"].map(esc).join(",");
+  const esc = (v) =>
+    `"${String(v ?? "")
+      .replaceAll('"', '""')
+      .replaceAll(/\r?\n/g, " ")}"`;
+
+  const header = ["Name", "Description", "Due Date", "Priority", "Status"]
+    .map(esc)
+    .join(",");
+
   const body = rows
     .map((t) => [t.name, t.desc, t.date, t.priority, t.status].map(esc).join(","))
     .join("\n");
+
   return header + "\n" + body;
 };
 
-const download = (filename, text) => {
-  const blob = new Blob([text], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-};
-
 const render = () => {
-  const all = loadTasks();
+  const all = getTasks();
   updateInsights(all);
   drawCharts(applyFilters(all));
 };
@@ -134,9 +118,9 @@ const render = () => {
 els.apply.addEventListener("click", render);
 
 els.export.addEventListener("click", () => {
-  const all = loadTasks();
-  if (!all.length) return alert("No tasks to export.");
-  download("ftn_tasks_export.csv", toCSV(all));
+  const all = getTasks();
+  if (!all.length) return showError("No tasks to export.");
+  downloadTextFile("ftn_tasks_export.csv", toCSV(all));
 });
 
 // first load

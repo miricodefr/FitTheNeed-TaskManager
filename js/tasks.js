@@ -1,3 +1,5 @@
+// - Code aspired by previous work done by co workers and ChatGpt
+
 /**
  * tasks.js
  * Adds:
@@ -9,8 +11,6 @@
  * - Summary counters
  *
  * Uses localStorage so tasks are not lost on refresh.
- * 
- * - Code aspired by previous work done by co workers and ChatGpt
  */
 
 const form = document.getElementById("taskForm");
@@ -40,22 +40,12 @@ const saveEditBtn = document.getElementById("saveEditBtn");
 const editModalEl = document.getElementById("editModal");
 const editModal = new bootstrap.Modal(editModalEl);
 
-// Storage key
-const STORAGE_KEY = "ftn_tasks_v1";
-
 // In-memory list (synced with localStorage)
 let tasks = [];
 
 // Filters / sorting state
 let currentStatusFilter = "all";    // all | pending | completed
 let currentPriorityFilter = "all";  // all | High | Medium | Low
-
-/**
- * Converts a Date object to YYYY-MM-DD (format for input[type="date"])
- */
-function formatDate(date) {
-  return date.toISOString().split("T")[0];
-}
 
 /**
  * Sets min/max limits for due date:
@@ -68,8 +58,8 @@ function setDateLimits() {
   const maxDate = new Date();
   maxDate.setFullYear(today.getFullYear() + 2);
 
-  const minStr = formatDate(today);
-  const maxStr = formatDate(maxDate);
+  const minStr = formatDateYYYYMMDD(today);
+  const maxStr = formatDateYYYYMMDD(maxDate);
 
   dateInput.min = minStr;
   dateInput.max = maxStr;
@@ -78,43 +68,6 @@ function setDateLimits() {
   editTaskDateEl.max = maxStr;
 }
 setDateLimits();
-
-/**
- * Loads tasks from localStorage safely.
- * If localStorage is empty or broken, we start with an empty array.
- */
-function loadTasks() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed;
-  } catch (err) {
-    console.error("Could not read tasks from localStorage:", err);
-    return [];
-  }
-}
-
-/**
- * Saves tasks to localStorage safely.
- */
-function saveTasks() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-  } catch (err) {
-    console.error("Could not save tasks to localStorage:", err);
-  }
-}
-
-/**
- * Validates max text lengths safely
- */
-function validateTextLimits(name, desc) {
-  if (name.length > 50) return "Task name cannot exceed 50 characters.";
-  if (desc.length > 150) return "Description cannot exceed 150 characters.";
-  return null;
-}
 
 /**
  * Checks if chosen date is inside allowed range
@@ -130,7 +83,6 @@ function isDateWithinLimits(dateValue) {
 
 /**
  * Creates a unique ID for each task.
- * This prevents issues when deleting tasks (indexes can change).
  */
 function makeId() {
   return Date.now().toString() + Math.random().toString(16).slice(2);
@@ -150,210 +102,135 @@ function updateSummary() {
 }
 
 /**
- * Returns a filtered list (status and priority)
+ * Filter tasks by current filters
  */
 function getFilteredTasks() {
   return tasks.filter((t) => {
-    // Status filter
-    if (currentStatusFilter === "pending" && t.status !== "Pending") return false;
-    if (currentStatusFilter === "completed" && t.status !== "Completed") return false;
+    const statusOk =
+      currentStatusFilter === "all" || t.status.toLowerCase() === currentStatusFilter;
 
-    // Priority filter
-    if (currentPriorityFilter !== "all" && t.priority !== currentPriorityFilter) return false;
+    const prioOk =
+      currentPriorityFilter === "all" || t.priority === currentPriorityFilter;
 
-    return true;
+    return statusOk && prioOk;
   });
 }
 
 /**
- * Sorts tasks based on the dropdown selection
+ * Sort tasks based on dropdown
  */
 function sortTasks(list) {
   const mode = sortSelect.value;
 
-  // copy array so we don't accidentally change the original list
-  const arr = [...list];
+  const byName = (a, b) => a.name.localeCompare(b.name);
+  const byDate = (a, b) => new Date(a.date) - new Date(b.date);
 
-  if (mode === "name_asc") {
-    arr.sort((a, b) => a.name.localeCompare(b.name));
-  } else if (mode === "name_desc") {
-    arr.sort((a, b) => b.name.localeCompare(a.name));
-  } else if (mode === "date_desc") {
-    arr.sort((a, b) => new Date(b.date) - new Date(a.date));
-  } else {
-    // default: date_asc (soonest)
-    arr.sort((a, b) => new Date(a.date) - new Date(b.date));
-  }
+  const copy = [...list];
 
-  return arr;
+  if (mode === "name_asc") copy.sort(byName);
+  if (mode === "name_desc") copy.sort((a, b) => byName(b, a));
+  if (mode === "date_asc") copy.sort(byDate);
+  if (mode === "date_desc") copy.sort((a, b) => byDate(b, a));
+
+  return copy;
 }
 
 /**
- * Sets the active look on status filter buttons
+ * Make active filter buttons stand out
  */
 function updateFilterButtonStyles() {
-  // Reset
-  filterAllBtn.classList.remove("active");
-  filterPendingBtn.classList.remove("active");
-  filterCompletedBtn.classList.remove("active");
-
-  // Activate one
-  if (currentStatusFilter === "pending") filterPendingBtn.classList.add("active");
-  else if (currentStatusFilter === "completed") filterCompletedBtn.classList.add("active");
-  else filterAllBtn.classList.add("active");
+  filterAllBtn.classList.toggle("active", currentStatusFilter === "all");
+  filterPendingBtn.classList.toggle("active", currentStatusFilter === "pending");
+  filterCompletedBtn.classList.toggle("active", currentStatusFilter === "completed");
 }
 
 /**
- * Helper: creates a Bootstrap badge to show priority
+ * Priority badge helper
  */
 function makePriorityBadge(priority) {
-  const span = document.createElement("span");
-  span.classList.add("badge");
+  const p = (priority || "Medium").toLowerCase();
+  const cls =
+    p === "high" ? "priority-high" : p === "low" ? "priority-low" : "priority-medium";
 
-  if (priority === "High") span.classList.add("priority-high");
-  else if (priority === "Low") span.classList.add("priority-low");
-  else span.classList.add("priority-medium");
-
-  span.textContent = priority;
-  return span;
+  return `<span class="badge ${cls}">${priority || "Medium"}</span>`;
 }
 
 /**
- * Render tasks into table (safe rendering)
+ * Render tasks in table
  */
 function renderTasks() {
-  tableBody.innerHTML = "";
-
-  // Update summary (summary is for ALL tasks, not filtered)
+  updateFilterButtonStyles();
   updateSummary();
 
-  // Filters and sorts list that we will show
   const filtered = getFilteredTasks();
-  const list = sortTasks(filtered);
+  const sorted = sortTasks(filtered);
 
-  if (list.length === 0) {
-    const emptyRow = document.createElement("tr");
-    const emptyCell = document.createElement("td");
-    emptyCell.colSpan = 6;
-    emptyCell.className = "text-muted text-center py-4";
-    emptyCell.textContent = "No tasks match your filters.";
-    emptyRow.appendChild(emptyCell);
-    tableBody.appendChild(emptyRow);
+  tableBody.innerHTML = "";
+
+  if (!sorted.length) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="6" class="text-muted text-center py-4">No tasks found.</td>`;
+    tableBody.appendChild(tr);
     return;
   }
 
-  list.forEach((task) => {
-    const row = document.createElement("tr");
+  sorted.forEach((task) => {
+    const tr = document.createElement("tr");
 
-    // Name
-    const nameTd = document.createElement("td");
-    nameTd.textContent = task.name;
+    const statusClass =
+      task.status === "Completed" ? "status-completed" : "status-pending";
 
-    // Description
-    const descTd = document.createElement("td");
-    descTd.textContent = task.desc;
+    tr.innerHTML = `
+      <td>${task.name}</td>
+      <td>${task.desc || ""}</td>
+      <td>${task.date}</td>
+      <td>${makePriorityBadge(task.priority)}</td>
+      <td class="${statusClass}">${task.status}</td>
+      <td>
+        <button class="btn btn-sm btn-success me-1" data-action="complete" data-id="${task.id}">
+          Mark Complete
+        </button>
+        <button class="btn btn-sm btn-secondary me-1" data-action="edit" data-id="${task.id}">
+          Edit
+        </button>
+        <button class="btn btn-sm btn-danger" data-action="delete" data-id="${task.id}">
+          Delete
+        </button>
+      </td>
+    `;
 
-    // Date
-    const dateTd = document.createElement("td");
-    dateTd.textContent = task.date;
-
-    // Priority badge
-    const prioTd = document.createElement("td");
-    prioTd.appendChild(makePriorityBadge(task.priority));
-
-    // Status
-    const statusTd = document.createElement("td");
-    statusTd.textContent = task.status;
-    statusTd.className = task.status === "Completed" ? "status-completed" : "status-pending";
-
-    // Actions
-    const actionsTd = document.createElement("td");
-
-    // Edit
-    const editBtn = document.createElement("button");
-    editBtn.type = "button";
-    editBtn.className = "btn btn-sm btn-outline-secondary me-2";
-    editBtn.textContent = "Edit";
-    editBtn.addEventListener("click", () => openEditModal(task.id));
-
-    // Complete
-    const completeBtn = document.createElement("button");
-    completeBtn.type = "button";
-
-    if (task.status === "Completed") {
-      completeBtn.disabled = true;
-      completeBtn.className = "btn btn-sm btn-secondary me-2";
-      completeBtn.textContent = "Completed";
-    } else {
-      completeBtn.className = "btn btn-sm btn-success me-2";
-      completeBtn.textContent = "Mark Complete";
-      completeBtn.addEventListener("click", () => markTaskComplete(task.id));
-    }
-
-    // Delete
-    const deleteBtn = document.createElement("button");
-    deleteBtn.type = "button";
-    deleteBtn.className = "btn btn-sm btn-danger";
-    deleteBtn.textContent = "Delete";
-    deleteBtn.addEventListener("click", () => deleteTask(task.id));
-
-    actionsTd.appendChild(editBtn);
-    actionsTd.appendChild(completeBtn);
-    actionsTd.appendChild(deleteBtn);
-
-    row.appendChild(nameTd);
-    row.appendChild(descTd);
-    row.appendChild(dateTd);
-    row.appendChild(prioTd);
-    row.appendChild(statusTd);
-    row.appendChild(actionsTd);
-
-    tableBody.appendChild(row);
+    tableBody.appendChild(tr);
   });
-
-  updateFilterButtonStyles();
 }
 
 /**
- * Mark a task as completed by ID
+ * Actions
  */
 function markTaskComplete(taskId) {
   tasks = tasks.map((t) => (t.id === taskId ? { ...t, status: "Completed" } : t));
-  saveTasks();
+  setTasks(tasks);
   renderTasks();
 }
 
-/**
- * Delete a task by ID
- */
 function deleteTask(taskId) {
-  const ok = confirm("Are you sure you want to delete this task?");
-  if (!ok) return;
-
   tasks = tasks.filter((t) => t.id !== taskId);
-  saveTasks();
+  setTasks(tasks);
   renderTasks();
 }
 
-/**
- * Opens the edit modal and fills it with task data
- */
 function openEditModal(taskId) {
   const task = tasks.find((t) => t.id === taskId);
   if (!task) return;
 
   editTaskIdEl.value = task.id;
   editTaskNameEl.value = task.name;
-  editTaskDescEl.value = task.desc;
+  editTaskDescEl.value = task.desc || "";
   editTaskDateEl.value = task.date;
-  editTaskPriorityEl.value = task.priority;
+  editTaskPriorityEl.value = task.priority || "Medium";
 
   editModal.show();
 }
 
-/**
- * Saves edits from the modal
- */
 function saveEdit() {
   const taskId = editTaskIdEl.value;
   const name = editTaskNameEl.value.trim();
@@ -361,45 +238,27 @@ function saveEdit() {
   const date = editTaskDateEl.value;
   const priority = editTaskPriorityEl.value;
 
-  if (!name) {
-    alert("Task name is required.");
-    return;
-  }
+  if (!name) return showError("Task name is required.");
+  if (!date) return showError("Due date is required.");
 
-  if (!date) {
-    alert("Due date is required.");
-    return;
-  }
+  const error = validateTextLimits(name, desc, 50, 150);
+  if (error) return showError(error);
 
-  const error = validateTextLimits(name, desc);
-  if (error) {
-    alert(error);
-    return;
-  }
-
-  // Check limits (same limits as add form)
   if (!isDateWithinLimits(date)) {
-    alert("Please select a due date between today and 2 years from today.");
-    return;
+    return showError("Please select a due date between today and 2 years from today.");
   }
 
-  tasks = tasks.map((t) => {
-    if (t.id === taskId) {
-      return { ...t, name, desc, date, priority };
-    }
-    return t;
-  });
+  tasks = tasks.map((t) =>
+    t.id === taskId ? { ...t, name, desc, date, priority } : t
+  );
 
-  saveTasks();
-  renderTasks();
+  setTasks(tasks);
   editModal.hide();
+  renderTasks();
 }
 
-// Save button in modal
-saveEditBtn.addEventListener("click", saveEdit);
-
 /**
- * Handle add form submission
+ * Events
  */
 form.addEventListener("submit", (e) => {
   e.preventDefault();
@@ -409,25 +268,14 @@ form.addEventListener("submit", (e) => {
   const date = document.getElementById("taskDate").value;
   const priority = document.getElementById("taskPriority").value;
 
-  if (!name) {
-    alert("Task name is required.");
-    return;
-  }
+  if (!name) return showError("Task name is required.");
+  if (!date) return showError("Due date is required.");
 
-  if (!date) {
-    alert("Due date is required.");
-    return;
-  }
-
-  const error = validateTextLimits(name, desc);
-  if (error) {
-    alert(error);
-    return;
-  }
+  const error = validateTextLimits(name, desc, 50, 150);
+  if (error) return showError(error);
 
   if (!isDateWithinLimits(date)) {
-    alert("Please select a due date between today and 2 years from today.");
-    return;
+    return showError("Please select a due date between today and 2 years from today.");
   }
 
   const newTask = {
@@ -440,14 +288,32 @@ form.addEventListener("submit", (e) => {
   };
 
   tasks.push(newTask);
-  saveTasks();
-  renderTasks();
+  setTasks(tasks);
+
   form.reset();
+  setDateLimits();
+  renderTasks();
 });
 
-/**
- * Filter button events
- */
+tableBody.addEventListener("click", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+
+  const action = btn.dataset.action;
+  const id = btn.dataset.id;
+
+  if (action === "complete") markTaskComplete(id);
+  if (action === "delete") deleteTask(id);
+  if (action === "edit") openEditModal(id);
+});
+
+sortSelect.addEventListener("change", renderTasks);
+
+priorityFilter.addEventListener("change", () => {
+  currentPriorityFilter = priorityFilter.value;
+  renderTasks();
+});
+
 filterAllBtn.addEventListener("click", () => {
   currentStatusFilter = "all";
   renderTasks();
@@ -463,19 +329,10 @@ filterCompletedBtn.addEventListener("click", () => {
   renderTasks();
 });
 
-/**
- * Priority filter event
- */
-priorityFilter.addEventListener("change", () => {
-  currentPriorityFilter = priorityFilter.value;
-  renderTasks();
-});
+saveEditBtn.addEventListener("click", saveEdit);
 
 /**
- * Sort event
+ * Init
  */
-sortSelect.addEventListener("change", renderTasks);
-
-// Load tasks and render on first page load
-tasks = loadTasks();
+tasks = getTasks();
 renderTasks();

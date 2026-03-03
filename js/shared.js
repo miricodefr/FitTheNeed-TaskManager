@@ -6,14 +6,12 @@
 function loadComponent(containerId, filePath) {
   fetch(filePath)
     .then((response) => {
-      // If the file can't be found, stop and show an error in the console
       if (!response.ok) {
         throw new Error(`Could not load ${filePath} (status: ${response.status})`);
       }
       return response.text();
     })
     .then((html) => {
-      // Insert the HTML into the page
       const container = document.getElementById(containerId);
       if (container) {
         container.innerHTML = html;
@@ -26,8 +24,28 @@ function loadComponent(containerId, filePath) {
     });
 }
 
-// When the page is ready, load the shared parts
+function $(id) {
+  return document.getElementById(id);
+}
+
+// Download helper (export)
+function downloadTextFile(filename, text, mime = "text/csv;charset=utf-8;") {
+  const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  URL.revokeObjectURL(url);
+}
+
+// When the page is ready load the shared parts
 document.addEventListener("DOMContentLoaded", () => {
-loadComponent("navbar", "components/navbar.html");
-loadComponent("footer", "components/footer.html");
+  loadComponent("navbar", "components/navbar.html");
+  loadComponent("footer", "components/footer.html");
 });
