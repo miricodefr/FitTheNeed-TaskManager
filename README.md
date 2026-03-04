@@ -7,5 +7,5 @@ Requirements:
 
 In order to launch this website you will need to have the following installed:
 1)Download VSCode
-2)Extensions --> Live Serve --> downlaod
+2)Extensions --> Live Server --> downlaod
 3)Bottom right corner, click Go Live
