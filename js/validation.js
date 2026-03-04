@@ -4,7 +4,7 @@ function showError(msg) {
   alert(msg);
 }
 
-// Simple email validation (good enough for coursework)
+// Email validation
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }

@@ -2,7 +2,7 @@
  * Loads an HTML file into a container element.
  * @param {string} containerId - The ID of the element where the HTML will be inserted.
  * @param {string} filePath - The path to the HTML file we want to load.
- * @returns {Promise<void>} resolves when the component has been inserted (or rejects on failure).
+ * @returns {Promise<void>} resolves when the component has been inserted (or rejects if fail).
  */
 function loadComponent(containerId, filePath) {
   return fetch(filePath)
@@ -46,8 +46,6 @@ function downloadTextFile(filename, text, mime = "text/csv;charset=utf-8;") {
   URL.revokeObjectURL(url);
 }
 
-// When the page is ready load the shared parts
-// and wire up the dark mode toggle
 
 document.addEventListener("DOMContentLoaded", () => {
   // load navbar first so the toggle button exists when we init dark mode
@@ -82,8 +80,8 @@ function applyDarkMode(enabled) {
 }
 
 /**
- * Read saved preference, fall back to system preference,
- * and wire up the toggle button.
+ * Read saved preference, or use system preference,
+ * and connect toggle button.
  */
 function initDarkMode() {
   const saved = localStorage.getItem("darkMode");

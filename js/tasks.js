@@ -44,14 +44,14 @@ const editModal = new bootstrap.Modal(editModalEl);
 let tasks = [];
 
 // Filters / sorting state
-let currentStatusFilter = "all";    // all | pending | completed
-let currentPriorityFilter = "all";  // all | High | Medium | Low
+let currentStatusFilter = "all";    // pending, completed
+let currentPriorityFilter = "all";  // High, Medium, Low
 
 /**
  * Sets min/max limits for due date:
  * - min = today
  * - max = today + 2 years
- * We apply this both to the add form and edit form.
+ * Works to both add and edit form
  */
 function setDateLimits() {
   const today = new Date();
@@ -117,7 +117,7 @@ function getFilteredTasks() {
 }
 
 /**
- * Sort tasks based on dropdown
+ * Sort tasks based on dropdown - high to low, low to high
  */
 function sortTasks(list) {
   const mode = sortSelect.value;
@@ -331,8 +331,6 @@ filterCompletedBtn.addEventListener("click", () => {
 
 saveEditBtn.addEventListener("click", saveEdit);
 
-/**
- * Init
- */
+//Innit
 tasks = getTasks();
 renderTasks();
