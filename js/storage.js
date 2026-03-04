@@ -2,7 +2,7 @@
 const TASKS_KEY = "ftn_tasks_v1";
 
 /**
- * Safely get tasks from localStorage.
+ * Get tasks from localStorage.
  * Always returns an array.
  */
 function getTasks() {
@@ -17,7 +17,7 @@ function getTasks() {
 }
 
 /**
- * Safely save tasks to localStorage.
+ * Saves to localStorage.
  */
 function setTasks(tasks) {
   try {

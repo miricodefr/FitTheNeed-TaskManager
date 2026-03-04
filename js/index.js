@@ -46,11 +46,11 @@ const boredBtn = document.getElementById("boredBtn");
 const bsPhraseEl = document.getElementById("bsPhrase");
 const bsStatusEl = document.getElementById("bsStatus");
 
-// The public API endpoint we are using
+// API
 const CORPORATE_BS_API_URL = "https://corporatebs-generator.sameerkumar.website/";
 
 /**
- * Small helper: show a status message under the phrase.
+ * status message under phrase
  * @param {string} msg - message to show the user
  */
 function setStatus(msg) {

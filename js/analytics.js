@@ -1,9 +1,9 @@
 /**
- * analytics.js (short version, still full marks)
- * - Reads tasks from localStorage (same key as tasks page)
+ * analytics.js
+ * - Reads tasks from localStorage
  * - Insight cards: total/pending/completed/overdue
- * - Filters: status + priority
- * - Charts: bar (pending vs completed) + doughnut (priority)
+ * - Filters: status, priority
+ * - Charts: bar (pending vs completed), donut (priority)
  * - Export CSV
  */
 

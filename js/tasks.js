@@ -6,7 +6,7 @@
  * - Mark Complete button
  * - Delete button
  * - Edit button (modal)
- * - Filtering (status + priority)
+ * - Filtering (status, priority)
  * - Sorting (name/date)
  * - Summary counters
  *

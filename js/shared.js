@@ -2,9 +2,10 @@
  * Loads an HTML file into a container element.
  * @param {string} containerId - The ID of the element where the HTML will be inserted.
  * @param {string} filePath - The path to the HTML file we want to load.
+ * @returns {Promise<void>} resolves when the component has been inserted (or rejects on failure).
  */
 function loadComponent(containerId, filePath) {
-  fetch(filePath)
+  return fetch(filePath)
     .then((response) => {
       if (!response.ok) {
         throw new Error(`Could not load ${filePath} (status: ${response.status})`);
@@ -21,6 +22,7 @@ function loadComponent(containerId, filePath) {
     })
     .catch((error) => {
       console.error(error);
+      throw error;
     });
 }
 
@@ -45,7 +47,64 @@ function downloadTextFile(filename, text, mime = "text/csv;charset=utf-8;") {
 }
 
 // When the page is ready load the shared parts
+// and wire up the dark mode toggle
+
 document.addEventListener("DOMContentLoaded", () => {
-  loadComponent("navbar", "components/navbar.html");
+  // load navbar first so the toggle button exists when we init dark mode
+  loadComponent("navbar", "components/navbar.html").finally(() => {
+    initDarkMode();
+  });
+
+  // footer load independently
   loadComponent("footer", "components/footer.html");
 });
+
+/**
+ * Toggle button text and stores preference.
+ * @param {boolean} enabled
+ */
+function applyDarkMode(enabled) {
+  const body = document.body;
+  const html = document.documentElement;
+  const toggle = document.getElementById("darkModeToggle");
+
+  if (enabled) {
+    body.classList.add("dark-mode");
+    html.setAttribute("data-bs-theme", "dark");
+    if (toggle) toggle.textContent = "Light Mode";
+    localStorage.setItem("darkMode", "true");
+  } else {
+    body.classList.remove("dark-mode");
+    html.removeAttribute("data-bs-theme");
+    if (toggle) toggle.textContent = "Dark Mode";
+    localStorage.setItem("darkMode", "false");
+  }
+}
+
+/**
+ * Read saved preference, fall back to system preference,
+ * and wire up the toggle button.
+ */
+function initDarkMode() {
+  const saved = localStorage.getItem("darkMode");
+  let enabled = false;
+
+  if (saved === "true") {
+    enabled = true;
+  } else if (saved === "false") {
+    enabled = false;
+  } else {
+    // if no preference, check system
+    enabled = window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+
+  applyDarkMode(enabled);
+
+  const toggle = document.getElementById("darkModeToggle");
+  if (toggle) {
+    toggle.addEventListener("click", () => {
+      applyDarkMode(!document.body.classList.contains("dark-mode"));
+    });
+  }
+}

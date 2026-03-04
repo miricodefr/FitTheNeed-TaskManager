@@ -5,3 +5,39 @@ body {
 section {
     min-height: auto;
 }
+
+/*Dark Mode */
+
+body.dark-mode,
+html[data-bs-theme="dark"] body {
+    background-color: #121212;
+    color: #e0e0e0;
+}
+
+/* drop downs */
+body.dark-mode .card,
+body.dark-mode .modal-content,
+body.dark-mode .dropdown-menu,
+html[data-bs-theme="dark"] .card,
+html[data-bs-theme="dark"] .modal-content,
+html[data-bs-theme="dark"] .dropdown-menu {
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+}
+
+/* navbar will be adjusted adjustment */
+body.dark-mode .navbar,
+html[data-bs-theme="dark"] .navbar {
+    background-color: #1e1e1e !important;
+}
+
+/* links still readable */
+body.dark-mode a,
+html[data-bs-theme="dark"] a {
+    color: #ffffff;
+}
+
+/* change toggle icon colors if needed */
+#darkModeToggle {
+    padding: 0.2rem 0.5rem;
+}
